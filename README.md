@@ -233,6 +233,7 @@ Además, el sistema contará con métricas visuales mediante gráficos para uso 
 - Stock
 - Cantidad total vendida
 - Fecha de agregado
+- Fecha de última edición
 - Estado
 
 ---
@@ -242,6 +243,8 @@ Además, el sistema contará con métricas visuales mediante gráficos para uso 
 - Número de ticket
 - ID del cliente
 - Fecha de compra
+- Fecha de creación
+- Fecha de última edición
 - Total
 - Estado
 - Detalle del ticket
