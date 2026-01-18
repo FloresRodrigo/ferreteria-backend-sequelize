@@ -8,7 +8,7 @@ const UsuarioSchema = new Schema({
     nombre_completo: { type: String, required: true, minlength: 8, maxlength: 40 },
     username: { type: String, required: true, unique: true, minlength: 4, maxlength: 20},
     email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
-    password: { type: String, required: true, minlength: 8, maxlength: 40},
+    password: { type: String, required: true, minlength: 8, maxlength: 60},
     rol: {
         type: String,
         enum: roles,

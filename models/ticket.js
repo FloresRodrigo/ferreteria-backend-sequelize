@@ -18,6 +18,7 @@ const TicketSchema = new Schema({
     detalles_ticket: [{ type: DetalleTicket.Schema }]
 }, { timestamps: true });
 
+//Para asignar el total automaticamente
 TicketSchema.pre('validate', function(next) {
     if(this.detalles_ticket && this.detalles_ticket.length > 0) {
         this.total = this.detalles_ticket.reduce((total, detalle) => {
@@ -29,6 +30,7 @@ TicketSchema.pre('validate', function(next) {
     next();
 });
 
+//Para asignar el numero de ticket automaticamente
 TicketSchema.pre('validate', async function(next) {
     if(this.isNew) {
         try {
