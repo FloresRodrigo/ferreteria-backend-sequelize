@@ -2,6 +2,7 @@ const Usuario = require('../models/usuario');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const mailService = require('./mail.service');
 
 class AuthService {
     //METODO PARA REGISTRAR
@@ -46,6 +47,8 @@ class AuthService {
             email: email,
             password: hashedPassword
         });
+        //Envio de email de registro
+        await mailService.sendWelcomeEmail(usuario);
         return {
             nombre_completo: usuario.nombre_completo,
             username: usuario.username,
@@ -92,9 +95,13 @@ class AuthService {
     };//METODO PARA LOGIN
 
     //METODO PARA RECUPERACION DE CONTRASEÑA
-    async forgotPassword(email) {
+    async forgotPassword({ email }) {
+        //Validar que lleguen datos
+        if(!email) {
+            throw new Error('Se necesita un email');
+        };
         //Busqueda de usuario
-        const usuario = await Usuario.findOne({email: email});
+        const usuario = await Usuario.findOne({ email: email });
         if(!usuario) {
             return;
         };
@@ -104,15 +111,18 @@ class AuthService {
         usuario.resetPasswordToken = resetTokenHash;
         usuario.resetPasswordExpiration = Date.now() + 15 * 60 * 1000;
         await usuario.save();
-        //Simulacion de email
-        console.log('LINK DE RECUPERACION: ');
-        console.log('.../reset-password?token='+resetToken);
+        //Envio de email con token
+        await mailService.sendResetPasswordEmail(usuario, resetToken);
     }////METODO PARA RECUPERACION DE CONTRASEÑA
 
     //METODO PARA REINICIO DE CONTRASEÑA
-    async resetPassword(token, newPassword) {
+    async resetPassword({ token, password }) {
+        //Validar que lleguen datos
+        if(!token || !password) {
+            throw new Error('Datos invalidos');
+        };
         //Validar contraseña
-        if(newPassword.length < 8 || newPassword.length > 20) {
+        if(password.length < 8 || password.length > 20) {
             throw new Error('La contraseña debe tener entre 8 y 20 caracteres');
         };
         //Hashear el token recibido
@@ -126,13 +136,15 @@ class AuthService {
             throw new Error('Token invalido o expirado');
         };
         //Se hashea la nueva contraseña y se desvincula al usuario del token y expiracion
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         usuario.password = hashedPassword;
         usuario.resetPasswordToken = undefined;
         usuario.resetPasswordExpiration = undefined;
         //Agregamos la fecha en que cambio su contraseña
         usuario.passwordChangedAt = new Date();
         await usuario.save();
+        //Envio de email de restablecimiento de contraseña
+        await mailService.sendPasswordChangedEmail(usuario);
     }//METODO PARA REINICIO DE CONTRASEÑA
 
 };//AUTHSERVICE

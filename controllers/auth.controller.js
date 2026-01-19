@@ -28,27 +28,19 @@ authCtrl.login = async (req, res) => {
 //METODO DE RECUPERACION DE CONTRASEÑA
 authCtrl.forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
-        if(!email) {
-            return failed(res, 'Se necesita un email');
-        };
-        await authService.forgotPassword(email);
-        return success(res, 'Se envio un correo para recuperar la contraseña', email);
+        await authService.forgotPassword(req.body);
+        return success(res, 'Se envio un correo para recuperar la contraseña');
     } catch (error) {
         console.error('ERROR EN RECUPERACION DE CONTRASEÑA: ', error);
-        return failed(req, error.message);
+        return failed(res, error.message);
     };
 };
 
 //METODO DE REINICIO DE CONTRASEÑA
 authCtrl.resetPassword = async (req, res) => {
     try {
-        const { token, password } = req.body;
-        if(!token || !password) {
-            return failed(res, 'Datos invalidos');
-        };
-        await authService.resetPassword(token, password);
-        return success(res, 'Contraseña actualizada correctamente', password);
+        await authService.resetPassword(req.body);
+        return success(res, 'Contraseña actualizada correctamente');
     } catch (error) {
         console.error('ERROR EN REINICIO DE CONTRASEÑA: ', error);
         return failed(res, error.message);
