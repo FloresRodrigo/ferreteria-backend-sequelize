@@ -1,6 +1,7 @@
 const Usuario = require('../models/usuario');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 class AuthService {
     //METODO PARA REGISTRAR
@@ -46,11 +47,11 @@ class AuthService {
             password: hashedPassword
         });
         return {
-            id: usuario._id,
+            nombre_completo: usuario.nombre_completo,
             username: usuario.username,
             email: usuario.email
         };
-    };
+    };//METODO PARA REGISTRAR
 
     //METODO PARA LOGIN
     async login({ login, password }) {
@@ -83,12 +84,57 @@ class AuthService {
             { expiresIn: process.env.JWT_EXPIRATION || '2hr' }
         );
         return {
-            id: usuario._id,
+            nombre_completo: usuario.nombre_completo,
             username: usuario.username,
             email: usuario.email,
             token: token
         };
-    };
-};
+    };//METODO PARA LOGIN
+
+    //METODO PARA RECUPERACION DE CONTRASEÑA
+    async forgotPassword(email) {
+        //Busqueda de usuario
+        const usuario = await Usuario.findOne({email: email});
+        if(!usuario) {
+            return;
+        };
+        //Creacion de token y token hasheado
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+        usuario.resetPasswordToken = resetTokenHash;
+        usuario.resetPasswordExpiration = Date.now() + 15 * 60 * 1000;
+        await usuario.save();
+        //Simulacion de email
+        console.log('LINK DE RECUPERACION: ');
+        console.log('.../reset-password?token='+resetToken);
+    }////METODO PARA RECUPERACION DE CONTRASEÑA
+
+    //METODO PARA REINICIO DE CONTRASEÑA
+    async resetPassword(token, newPassword) {
+        //Validar contraseña
+        if(newPassword.length < 8 || newPassword.length > 20) {
+            throw new Error('La contraseña debe tener entre 8 y 20 caracteres');
+        };
+        //Hashear el token recibido
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        //Se compara el token recibido hasheado con el guardado y fecha de expiracion
+        const usuario = await Usuario.findOne({
+            resetPasswordToken: tokenHash,
+            resetPasswordExpiration: { $gt: Date.now() }
+        });
+        if(!usuario) {
+            throw new Error('Token invalido o expirado');
+        };
+        //Se hashea la nueva contraseña y se desvincula al usuario del token y expiracion
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        usuario.password = hashedPassword;
+        usuario.resetPasswordToken = undefined;
+        usuario.resetPasswordExpiration = undefined;
+        //Agregamos la fecha en que cambio su contraseña
+        usuario.passwordChangedAt = new Date();
+        await usuario.save();
+    }//METODO PARA REINICIO DE CONTRASEÑA
+
+};//AUTHSERVICE
 
 module.exports = new AuthService();

@@ -18,7 +18,10 @@ const UsuarioSchema = new Schema({
         type: String,
         enum: estados,
         default: 'ACTIVO'
-    }
+    },
+    resetPasswordToken: { type: String },
+    resetPasswordExpiration: { type: Date },
+    passwordChangedAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.models.Usuario || mongoose.model('Usuario', UsuarioSchema);
