@@ -19,6 +19,8 @@ const UsuarioSchema = new Schema({
         enum: estados,
         default: 'ACTIVO'
     },
+    lastLogin: { type: Date },
+    deleteRequestedAt: { type: Date },
     resetPasswordToken: { type: String },
     resetPasswordExpiration: { type: Date },
     passwordChangedAt: { type: Date }

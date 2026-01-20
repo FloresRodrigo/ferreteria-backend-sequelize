@@ -16,15 +16,16 @@ class AuthService {
         if(nombre_completo.length < 8 || nombre_completo.length > 40) {
             throw new Error('El nombre debe tener entre 8 y 40 caracteres');
         };
+        //Validar username
         if(username.length < 4 || username.length > 20) {
             throw new Error('El username debe tener entre 4 y 20 caracteres');
         };
-        if(password.length < 8 || password.length > 20) {
-            throw new Error('La contraseña debe tener entre 8 y 20 caracteres');
-        };
-        //Validar username
         if(!/^[A-Za-z0-9]+$/.test(username)) {
             throw new Error('El username solo puede tener letras y numeros');
+        };
+        //Validar contraseña
+        if(password.length < 8 || password.length > 20) {
+            throw new Error('La contraseña debe tener entre 8 y 20 caracteres');
         };
         //Validar email
         if(!/.+\@.+\..+/.test(email)) {
@@ -32,7 +33,7 @@ class AuthService {
         };
         //Validar que no esten ocupados el username o el email
         const usernameExists = await Usuario.findOne({ username: username });
-        const emailExists = await Usuario.findOne({ email: email })
+        const emailExists = await Usuario.findOne({ email: email });
         if(usernameExists) {
             throw new Error('Username ya registrado');
         };
@@ -54,7 +55,7 @@ class AuthService {
             username: usuario.username,
             email: usuario.email
         };
-    };//METODO PARA REGISTRAR
+    };
 
     //METODO PARA LOGIN
     async login({ login, password }) {
@@ -77,6 +78,16 @@ class AuthService {
         if(!match) {
             throw new Error('La contraseña es incorrecta');
         };
+        //Se verifica si la cuenta esta inactiva
+        if(usuario.estado === 'INACTIVO') {
+            const deleteMs = Date.now() - usuario.deleteRequestedAt.getTime();
+            const deleteDays = deleteMs / (24 * 60 * 60 * 1000);
+            if(deleteDays < 14) {
+                usuario.estado = 'ACTIVO';
+                usuario.deleteRequestedAt = undefined;
+            };
+        };
+        //Si no pasaron 14 dias desde la eliminacion de su cuenta, esta se vuelve a activar
         //Firma del JWT con id y rol
         const token = jwt.sign(
             {
@@ -86,13 +97,15 @@ class AuthService {
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRATION || '2hr' }
         );
+        usuario.lastLogin = new Date();
+        await usuario.save();
         return {
             nombre_completo: usuario.nombre_completo,
             username: usuario.username,
             email: usuario.email,
             token: token
         };
-    };//METODO PARA LOGIN
+    };
 
     //METODO PARA RECUPERACION DE CONTRASEÑA
     async forgotPassword({ email }) {
@@ -113,7 +126,7 @@ class AuthService {
         await usuario.save();
         //Envio de email con token
         await mailService.sendResetPasswordEmail(usuario, resetToken);
-    }////METODO PARA RECUPERACION DE CONTRASEÑA
+    };
 
     //METODO PARA REINICIO DE CONTRASEÑA
     async resetPassword({ token, password }) {
@@ -145,7 +158,7 @@ class AuthService {
         await usuario.save();
         //Envio de email de restablecimiento de contraseña
         await mailService.sendPasswordChangedEmail(usuario);
-    }//METODO PARA REINICIO DE CONTRASEÑA
+    };
 
 };//AUTHSERVICE
 
