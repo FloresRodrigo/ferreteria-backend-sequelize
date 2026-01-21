@@ -1,5 +1,6 @@
 const Usuario = require('../models/usuario');
 const bcrypt = require('bcrypt');
+const mailService = require('./mail.service');
 
 class UsuarioService {
     //METODO PARA OBTENER TODOS LOS USUARIOS
@@ -45,12 +46,14 @@ class UsuarioService {
         };
         //VALIDACIONES
         //Validar datos, si llega uno se valida y se actualiza
+        //Actualizar nombre
         if(nombre_completo) {
             if(nombre_completo.length < 8 || nombre_completo.length > 40) {
                 throw new Error('El nombre debe tener entre 8 y 40 caracteres');
             };
             usuario.nombre_completo = nombre_completo;
         };
+        //Actualizar username
         if(username) {
             if(username.length < 4 || username.length > 20) {
                 throw new Error('El username debe tener entre 4 y 20 caracteres');
@@ -64,7 +67,10 @@ class UsuarioService {
             };
             usuario.username = username;
         };
-        if(email) {
+        //Actualizar email
+        let emailChanged = false;
+        let oldEmail;
+        if(email && email !== usuario.email) {
             if(!/.+\@.+\..+/.test(email)) {
                 throw new Error('Formato de email invalido');
             };
@@ -72,12 +78,22 @@ class UsuarioService {
             if(emailExists) {
                 throw new Error('Email ya registrado');
             };
+            oldEmail = usuario.email;
             usuario.email = email;
+            emailChanged = true;
         };
         if(!nombre_completo && !username && !email) {
             throw new Error('Ingrese al menos un campo');
         };
         await usuario.save();
+        //Enviar solo si se cambio email y actualizo correctamente
+        if(emailChanged) {
+            try {
+                await mailService.sendEmailChangedEmail(oldEmail, email);
+            } catch (error) {
+                console.error('ERROR AL ENVIAR EMAIL: ', error);
+            };
+        };
     };
 
     //METODO PARA CAMBIAR CONTRASEÑA
@@ -116,6 +132,12 @@ class UsuarioService {
         usuario.password = hashedPassword;
         usuario.passwordChangedAt = new Date();
         await usuario.save();
+        //Notificar cambio de contraseña
+        try {
+            await mailService.sendPasswordChangedEmail(usuario);
+        } catch (error) {
+            console.error('ERROR AL ENVIAR EMAIL', error);
+        };
     };
 
     //METODO PARA ACTUALIZAR USUARIO
@@ -129,40 +151,47 @@ class UsuarioService {
         if(!usuario) {
             throw new Error('El usuario objetivo no existe');
         };
-        //Verificar que lleguen datos
-        if(!nombre_completo || !username || !email) {
-            throw new Error('Debe completar todos los datos');
+        if(!nombre_completo && !username && !email && !password && !estado) {
+            throw new Error('Ingrese al menos un campo');
         };
-        //VALIDACIONES
-        //Validar longitudes
-        if(nombre_completo.length < 8 || nombre_completo.length > 40) {
-            throw new Error('El nombre debe tener entre 8 y 40 caracteres');
+        //Modificar nombre solo si llega
+        if(nombre_completo) {
+            if(nombre_completo.length < 8 || nombre_completo.length > 40) {
+                throw new Error('El nombre debe tener entre 8 y 40 caracteres');
+            };
+            usuario.nombre_completo = nombre_completo;
         };
-        //Validar username
-        if(username.length < 4 || username.length > 20) {
-            throw new Error('El username debe tener entre 4 y 20 caracteres');
+        //Modificar username solo si llega
+        if(username) {
+            if(username.length < 4 || username.length > 20) {
+                throw new Error('El username debe tener entre 4 y 20 caracteres');
+            };
+            if(!/^[A-Za-z0-9]+$/.test(username)) {
+                throw new Error('El username solo puede tener letras y numeros');
+            };
+            const usernameExists = await Usuario.findOne({ username: username, _id: { $ne: idTarget } });
+            if(usernameExists) {
+                throw new Error('Username ya registrado');
+            };
+            usuario.username = username;
         };
-        if(!/^[A-Za-z0-9]+$/.test(username)) {
-            throw new Error('El username solo puede tener letras y numeros');
+        //Modificar email solo si llega
+        let oldEmail;
+        let emailChanged = false;
+        if(email && email !== usuario.email) {
+            if(!/.+\@.+\..+/.test(email)) {
+                throw new Error('Formato de email invalido');
+            };
+            const emailExists = await Usuario.findOne({ email: email, _id: { $ne: idTarget } });
+            if(emailExists) {
+                throw new Error('Email ya registrado');
+            };
+            oldEmail = usuario.email;
+            usuario.email = email;
+            emailChanged = true;
         };
-        //Validar email
-        if(!/.+\@.+\..+/.test(email)) {
-            throw new Error('Formato de email invalido');
-        };
-        //Validar que no esten ocupados el username o el email
-        const usernameExists = await Usuario.findOne({ username: username, _id: { $ne: idTarget } });
-        const emailExists = await Usuario.findOne({ email: email, _id: { $ne: idTarget } });
-        if(usernameExists) {
-            throw new Error('Username ya registrado');
-        };
-        if(emailExists) {
-            throw new Error('Email ya registrado');
-        };
-        //Actualizacion
-        usuario.nombre_completo = nombre_completo;
-        usuario.username = username;
-        usuario.email = email;
         //Cambiar contraseña solo si llega
+        let passwordChanged = false;
         if(password) {
             if(password.length < 8 || password.length > 20) {
                 throw new Error('La contraseña debe tener entre 8 y 20 caracteres');
@@ -170,6 +199,7 @@ class UsuarioService {
             const hashedPassword = await bcrypt.hash(password, 10);
             usuario.password = hashedPassword;
             usuario.passwordChangedAt = new Date();
+            passwordChanged = true;
         };
         //Cambiar estado solo si llega y es valido
         if(estado) {
@@ -179,6 +209,20 @@ class UsuarioService {
             };
         };
         await usuario.save();
+        if(emailChanged) {
+            try {
+                await mailService.sendEmailChangedEmail(oldEmail, email);
+            } catch (error) {
+                console.error('ERROR AL ENVIAR EMAIL: ', error);
+            };
+        };
+        if(passwordChanged) {
+            try {
+                await mailService.sendPasswordChangedEmail(usuario);
+            } catch (error) {
+                console.error('ERROR AL ENVIAR EMAIL: ', error);
+            };
+        };
     };
 
     //METODO PARA ELIMINAR UN USUARIO (logicamente)
@@ -193,7 +237,7 @@ class UsuarioService {
             throw new Error('El usuario objetivo no existe');
         };
         //Verificar que no se elimine a si mismo
-        if(idReq === usuario._id.toString()) {
+        if(idReq.toString() === usuario._id.toString()) {
             throw new Error('No puede eliminarse a si mismo');
         };
         //Verificar que no este ya inactivo
@@ -203,6 +247,12 @@ class UsuarioService {
         usuario.estado = 'INACTIVO';
         usuario.deleteRequestedAt = new Date();
         await usuario.save();
+        //Notificar programacion de eliminacion de cuenta
+        try {
+            await mailService.sendDeletedAccountEmail(usuario);
+        } catch (error) {
+            console.error('ERROR AL ENVIAR EMAIL', error);
+        }
     };
 
 };//USUARIOSERVICE

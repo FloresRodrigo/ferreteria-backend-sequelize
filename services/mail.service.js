@@ -14,7 +14,7 @@ class MailService {
                 <p>Ya puede iniciar sesion y comenzar a comprar.</p>
             `
         });
-    }
+    };
 
     //Solicitud de recuperacion de contraseña
     async sendResetPasswordEmail(usuario, resetToken) {
@@ -29,7 +29,7 @@ class MailService {
                 <p>Este codigo es de un solo uso y deja de ser valido en 15 minutos.</p>
             `
         });
-    }
+    };
 
     //Cambio de contraseña exitoso
     async sendPasswordChangedEmail(usuario) {
@@ -42,7 +42,35 @@ class MailService {
                 <p>Si no fue usted quien solicito el cambio, contactenos inmediatamente.</p>
             `
         });
-    }
-};
+    };
+
+    //Actualizacion de email
+    async sendEmailChangedEmail(oldEmail, newEmail) {
+        await transporter.sendMail({
+            from: `"Ferreteria" <${process.env.NODEMAIL_USER}>`,
+            to: oldEmail,
+            subject: 'Correo cambiado',
+            html: `
+                <p>Su correo fue modificado de <b>${oldEmail}</b> a <b>${newEmail}</b></p>
+                <p>Si no fue usted quien solicito el cambio, contactenos inmediatamente.</p>
+            `
+        });
+    };
+
+    //Eliminacion de cuenta
+    async sendDeletedAccountEmail(usuario) {
+        await transporter.sendMail({
+            from: `"Ferreteria" <${process.env.NODEMAIL_USER}>`,
+            to: usuario.email,
+            subject: 'Cuenta para eliminacion',
+            html: `
+                <p>Solicitaste la eliminacion de tu cuenta</p>
+                <p>Si no inicias sesion en 14 dias, tu cuenta sera eliminada de forma definitiva</p>
+                <p>Si inicias sesion antes de este periodo, esta volvera a ser activada</p>
+            `
+        });
+    };
+
+};//MAILSERVICE
 
 module.exports = new MailService();

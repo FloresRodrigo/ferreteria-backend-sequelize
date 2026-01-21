@@ -49,7 +49,11 @@ class AuthService {
             password: hashedPassword
         });
         //Envio de email de registro
-        await mailService.sendWelcomeEmail(usuario);
+        try {
+            await mailService.sendWelcomeEmail(usuario);
+        } catch (error) {
+            console.error('ERROR AL ENVIAR EMAIL: ', error);
+        }
         return {
             nombre_completo: usuario.nombre_completo,
             username: usuario.username,
@@ -125,7 +129,11 @@ class AuthService {
         usuario.resetPasswordExpiration = Date.now() + 15 * 60 * 1000;
         await usuario.save();
         //Envio de email con token
-        await mailService.sendResetPasswordEmail(usuario, resetToken);
+        try {
+            await mailService.sendResetPasswordEmail(usuario, resetToken);
+        } catch (error) {
+            console.error('ERROR AL ENVIAR EMAIL: ', error);
+        }
     };
 
     //METODO PARA REINICIO DE CONTRASEÑA
@@ -157,7 +165,11 @@ class AuthService {
         usuario.passwordChangedAt = new Date();
         await usuario.save();
         //Envio de email de restablecimiento de contraseña
-        await mailService.sendPasswordChangedEmail(usuario);
+        try {
+            await mailService.sendPasswordChangedEmail(usuario);
+        } catch (error) {
+            console.error('ERROR AL ENVIAR EMAIL', error);
+        }
     };
 
 };//AUTHSERVICE
