@@ -89,17 +89,6 @@ articuloCtrl.deleteArticulo = async (req, res) => {
     }
 };
 
-//METODO PARA ACTUALIZAR STOCK Y TOTAL VENDIDO DE UN ARTICULO
-articuloCtrl.actualizarStockYtotal = async (req, res) => {
-    try {
-        await articuloService.actualizarStockYtotal(req.params.id, req.body);
-        return success(res, 'Stock y total actualziado');
-    } catch (error) {
-        console.error('ERROR AL ACTUALZIAR STOCK Y TOTAL: ', error);
-        return failed(res, error.message);
-    }
-};
-
 //METODO PARA TRAER TOP 10 ARTICULOS MAS VENDIDOS
 articuloCtrl.top10Articulos = async (req, res) => {
     try {

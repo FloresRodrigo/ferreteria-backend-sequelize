@@ -6,7 +6,7 @@ const { Schema } = mongoose;
 const estados = ['PENDIENTE', 'PAGADO', 'CANCELADO'];
 
 const TicketSchema = new Schema({
-    nro_ticket: { type: Number, required: true, min: 0 },
+    nro_ticket: { type: Number, required: true, min: 0, unique: true},
     id_cliente: { type: Schema.Types.ObjectId, ref: 'Usuario', required: true },
     fecha_compra: { type: Date },
     total: { type: Number, required: true, min: 0 },
@@ -15,37 +15,29 @@ const TicketSchema = new Schema({
         enum: estados,
         default: 'PENDIENTE'
     },
-    detalles_ticket: [{ type: DetalleTicket.Schema }]
+    detalles_ticket: [{ type: DetalleTicket.schema }]
 }, { timestamps: true });
 
 //Para asignar el total automaticamente
-TicketSchema.pre('validate', function(next) {
-    if(this.detalles_ticket && this.detalles_ticket.length > 0) {
+TicketSchema.pre('validate', function() {
+    if (this.detalles_ticket && this.detalles_ticket.length > 0) {
         this.total = this.detalles_ticket.reduce((total, detalle) => {
-            return total + (detalle.subtotal || 0);
+            return total + (detalle.precio_unitario * detalle.cantidad);
         }, 0);
     } else {
         this.total = 0;
-    };
-    next();
+    }
 });
 
 //Para asignar el numero de ticket automaticamente
-TicketSchema.pre('validate', async function(next) {
+TicketSchema.pre('validate', async function() {
     if(this.isNew) {
-        try {
-            const contador = await Contador.findByIdAndUpdate(
-                'ticket',
-                { $inc: { seq: 1 } },
-                { new: true, upsert: true }
-            );
-            this.nro_ticket = contador.seq;
-            next();
-        } catch (error) {
-            next(error);
-        }
-    } else {
-        next();
+        const contador = await Contador.findByIdAndUpdate(
+            'ticket',
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true }
+        );
+        this.nro_ticket = contador.seq;
     }
 });
 

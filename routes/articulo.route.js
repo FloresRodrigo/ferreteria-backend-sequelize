@@ -13,8 +13,6 @@ router.get('/inventario', authMiddleware, adminMiddleware, articuloCtrl.getInven
 router.get('/inventario/:id', authMiddleware, adminMiddleware, articuloCtrl.getArticuloAdmin);
 //Agregar un articulo
 router.post('/inventario', authMiddleware, adminMiddleware, uploadMiddleware.single('imagen'), articuloCtrl.createArticulo);
-//Actualizar stock y total de un articulo
-router.put('/inventario/stock-total/:id', authMiddleware, adminMiddleware, articuloCtrl.actualizarStockYtotal);
 //Editar un articulo
 router.put('/inventario/:id', authMiddleware, adminMiddleware, uploadMiddleware.single('imagen'), articuloCtrl.updateArticulo);
 //Eliminar logicamente un articulo

@@ -301,14 +301,14 @@ class ArticuloService {
         await articulo.save();
     };
 
-    //METODO PARA ACTUALIZAR STOCK Y TOTAL VENDIDO DE UN ARTICULO
-    async actualizarStockYtotal(id, { cantidad }) {
+    //METODO PARA ACTUALIZAR STOCK Y TOTAL VENDIDO DE UN ARTICULO (no tiene endpoint)
+    async actualizarStockYtotal(id, cantidad, session = null) {
         //Verificar ID
         if(!id) {
             throw new Error('ID invalido');
         };
         //Verificar articulo a actualizar
-        const articulo = await Articulo.findById(id);
+        const articulo = await Articulo.findById(id).session(session);
         if(!articulo) {
             throw new Error('No se encontro el articulo con ese ID');
         };
@@ -330,7 +330,8 @@ class ArticuloService {
                     stock: -cantidad,
                     total_vendido: cantidad
                 }
-            }
+            },
+            { session }
         );
     };
 

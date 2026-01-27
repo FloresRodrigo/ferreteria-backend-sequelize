@@ -141,15 +141,15 @@ class UsuarioService {
     };
 
     //METODO PARA ACTUALIZAR USUARIO
-    async updateUsuario(idTarget, { nombre_completo, username, email, password, estado }) {
+    async updateUsuario(id, { nombre_completo, username, email, password, estado }) {
         //Verificar ID
-        if(!idTarget) {
+        if(!id) {
             throw new Error('Debe ingresar un ID');
         };
         //Verificar usuario a modificar
-        const usuario = await Usuario.findById(idTarget);
+        const usuario = await Usuario.findById(id);
         if(!usuario) {
-            throw new Error('El usuario objetivo no existe');
+            throw new Error('No se encontro un usuario con ese ID');
         };
         if(!nombre_completo && !username && !email && !password && !estado) {
             throw new Error('Ingrese al menos un campo');
@@ -169,7 +169,7 @@ class UsuarioService {
             if(!/^[A-Za-z0-9]+$/.test(username)) {
                 throw new Error('El username solo puede tener letras y numeros');
             };
-            const usernameExists = await Usuario.findOne({ username: username, _id: { $ne: idTarget } });
+            const usernameExists = await Usuario.findOne({ username: username, _id: { $ne: id } });
             if(usernameExists) {
                 throw new Error('Username ya registrado');
             };
@@ -182,7 +182,7 @@ class UsuarioService {
             if(!/.+\@.+\..+/.test(email)) {
                 throw new Error('Formato de email invalido');
             };
-            const emailExists = await Usuario.findOne({ email: email, _id: { $ne: idTarget } });
+            const emailExists = await Usuario.findOne({ email: email, _id: { $ne: id } });
             if(emailExists) {
                 throw new Error('Email ya registrado');
             };
@@ -234,7 +234,7 @@ class UsuarioService {
         //Verificar usuario a eliminar
         const usuario = await Usuario.findById(idTarget);
         if(!usuario) {
-            throw new Error('El usuario objetivo no existe');
+            throw new Error('El usuario a eliminar no existe');
         };
         //Verificar que no se elimine a si mismo
         if(idReq.toString() === usuario._id.toString()) {

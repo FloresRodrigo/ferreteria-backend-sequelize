@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const estados = ['ACTIVO', 'INACTIVO'];
 
 const ArticuloSchema = new Schema({
-    nombre: { type: String, required: true, minlength: 8, maxlength: 40},
+    nombre: { type: String, required: true, minlength: 3, maxlength: 40},
     descripcion: { type: String, required: true, minlength: 10, maxlength: 200},
     imagen: { type: String, required: true },
     precio: { type: Number, required: true, min: 0 },
