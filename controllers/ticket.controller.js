@@ -1,6 +1,6 @@
 const ticketService = require('../services/ticket.service')
 const { success, failed } = require('../helpers/response.helper');
-const ticket = require('../models/ticket');
+const mercadopagoService = require('../services/mercadopago.service');
 
 const ticketCtrl = {};
 
@@ -68,6 +68,22 @@ ticketCtrl.getTicket = async (req, res) => {
         console.error('ERROR AL OBTENER TICKET: ', error);
         return failed(res, error.message);
     }
+};
+
+//METODO PARA PAGAR UN TICKET (con mercado pago, es el metodo que usaran los clientes, crea el link para ir al proceso de pago)
+ticketCtrl.pagarTicket = async (req, res) => {
+    try {
+        const ticket = await ticketService.getMyTicket(req.user.id, req.params.id);
+        if(ticket.estado !== 'PENDIENTE') {
+            return failed(res, `El ticket ya esta ${ticket.estado}`);
+        };
+        const preference = await mercadopagoService.crearPreference(ticket);
+        return success(res, 'Preferencia de pago creada', preference);
+    } catch (error) {
+        console.error('ERROR AL PAGAR TICKET: ', error);
+        return failed(res, error.message);
+    };
+    
 };
 
 module.exports = ticketCtrl;

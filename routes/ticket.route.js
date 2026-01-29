@@ -14,6 +14,8 @@ router.get('/my-tickets/:id', authMiddleware, ticketCtrl.getMyTicket);
 router.post('/', authMiddleware, ticketCtrl.createTicket);
 //Cancelar un ticket
 router.put('/cancelar/:id', authMiddleware, ticketCtrl.cancelarTicket);
+//Pagar un ticket
+router.post('/:id/pagar', authMiddleware, ticketCtrl.pagarTicket);
 
 //RUTAS PARA ADMIN
 //Obtener todos los tickets

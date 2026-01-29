@@ -173,6 +173,7 @@ class TicketService {
         };
         return ticket;
     };
-};
+
+};//TICKETSERVICE
 
 module.exports = new TicketService();
