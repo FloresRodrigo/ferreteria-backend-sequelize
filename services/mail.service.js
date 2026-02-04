@@ -25,7 +25,7 @@ class MailService {
             html: `
                 <p>Solicito recuperar su contraseña.</p>
                 <p>Ingrese al siguiente link para iniciar el proceso.</p>
-                <h2>http://paginaenprogreso/reset-password?token=${resetToken}</h2>
+                <h2>${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}</h2>
                 <p>Este codigo es de un solo uso y deja de ser valido en 15 minutos.</p>
             `
         });

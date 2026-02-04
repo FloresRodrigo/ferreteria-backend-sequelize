@@ -39,7 +39,7 @@ authCtrl.forgotPassword = async (req, res) => {
 //METODO DE REINICIO DE CONTRASEÑA
 authCtrl.resetPassword = async (req, res) => {
     try {
-        await authService.resetPassword(req.body);
+        await authService.resetPassword(req.query, req.body);
         return success(res, 'Contraseña actualizada correctamente');
     } catch (error) {
         console.error('ERROR EN REINICIO DE CONTRASEÑA: ', error);

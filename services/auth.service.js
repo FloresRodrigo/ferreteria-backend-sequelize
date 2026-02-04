@@ -137,7 +137,7 @@ class AuthService {
     };
 
     //METODO PARA REINICIO DE CONTRASEÑA
-    async resetPassword({ token, password }) {
+    async resetPassword({ token },{ password }) {
         //Validar que lleguen datos
         if(!token || !password) {
             throw new Error('Datos invalidos');
