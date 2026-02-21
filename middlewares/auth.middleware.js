@@ -24,7 +24,7 @@ async function authMiddleware(req, res, next) {
         if(usuario.passwordChangedAt) {
             const passwordChangedAtTime = Math.floor(usuario.passwordChangedAt.getTime() / 1000);
             if(userInfo.iat < passwordChangedAtTime) {
-                return failed(res, 'Sesion invalida, la contraseña fue cambiada');
+                return failed(res, 'Sesión invalida, la contraseña fue cambiada');
             };
         };
         req.user = userInfo;

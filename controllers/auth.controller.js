@@ -47,4 +47,26 @@ authCtrl.resetPassword = async (req, res) => {
     }
 };
 
+//METODO DE LOGIN CON GOOGLE
+authCtrl.loginGoogle = async (req, res) => {
+    try {
+        const usuario = await authService.loginGoogle(req.body);
+        return success(res, 'Login exitoso', usuario);
+    } catch (error) {
+        console.error('ERROR EN EL LOGIN: ', error);
+        return failed(res, error.message);
+    };
+};
+
+//METODO PARA ESTABLECER CONTRASEÑA A CUENTA CREADA CON GOOGLE
+authCtrl.setPasswordGoogle = async (req, res) => {
+    try {
+        await authService.setPasswordGoogle(req.user.id, req.body);
+        return success(res, 'Contraseña establecida correctamente');
+    } catch (error) {
+        console.error('ERROR AL ESTABLECER CONTRASEÑA: ', error);
+        return failed(res, error.message);
+    }
+};
+
 module.exports = authCtrl;

@@ -8,7 +8,7 @@ const UsuarioSchema = new Schema({
     nombre_completo: { type: String, required: true, minlength: 8, maxlength: 40 },
     username: { type: String, required: true, unique: true, minlength: 4, maxlength: 20},
     email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
-    password: { type: String, required: true, minlength: 8, maxlength: 60},
+    password: { type: String, minlength: 8, maxlength: 60, required: function() { return !this.isGoogle; }},
     rol: {
         type: String,
         enum: roles,
@@ -23,7 +23,8 @@ const UsuarioSchema = new Schema({
     deleteRequestedAt: { type: Date },
     resetPasswordToken: { type: String },
     resetPasswordExpiration: { type: Date },
-    passwordChangedAt: { type: Date }
+    passwordChangedAt: { type: Date },
+    isGoogle: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.models.Usuario || mongoose.model('Usuario', UsuarioSchema);
