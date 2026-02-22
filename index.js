@@ -15,6 +15,7 @@ app.use('/api/articulo', require('./routes/articulo.route'));
 app.use('/api/ticket', require('./routes/ticket.route'));
 app.use('/api/mercadopago', require('./routes/mercadopago.route'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/stats', require('./routes/stats.route'));
 
 app.set('port', process.env.PORT || 3000);
 

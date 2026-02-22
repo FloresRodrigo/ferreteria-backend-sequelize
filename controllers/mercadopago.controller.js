@@ -1,5 +1,4 @@
 const mercadopagoService = require("../services/mercadopago.service");
-const ticketService = require("../services/ticket.service");
 
 const mercadopagoCtrl = {};
 
