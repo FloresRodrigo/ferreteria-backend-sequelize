@@ -25,7 +25,7 @@ class MailService {
             html: `
                 <p>Solicito recuperar su contraseña.</p>
                 <p>Ingrese al siguiente link para iniciar el proceso.</p>
-                <h2>http://paginaenprogreso/reset-password?token=${resetToken}</h2>
+                <h2>${process.env.CORS_ORIGIN}/reset-password?token=${resetToken}</h2>
                 <p>Este codigo es de un solo uso y deja de ser valido en 15 minutos.</p>
             `
         });
@@ -67,6 +67,21 @@ class MailService {
                 <p>Solicitaste la eliminacion de tu cuenta</p>
                 <p>Si no inicias sesion en 14 dias, tu cuenta sera eliminada de forma definitiva</p>
                 <p>Si inicias sesion antes de este periodo, esta volvera a ser activada</p>
+            `
+        });
+    };
+
+    //Compra confirmada
+    async sendSuccessfulPayment(usuario, ticket) {
+        await transporter.sendMail({
+            from: `"Ferreteria" <${process.env.NODEMAIL_USER}>`,
+            to: usuario.email,
+            subject: `Compra confirmada - Ticket: #${ticket.nro_ticket}`,
+            html: `
+                <h2>Gracias por tu compra</h2>
+                <p>Tu pago fue confirmado exitosamente</p>
+                <p><strong>Ticket:</strong> #${ticket.nro_ticket}</p>
+                <p><strong>Total:</strong> $${ticket.total}</p>
             `
         });
     };

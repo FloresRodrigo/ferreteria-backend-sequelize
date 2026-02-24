@@ -3,6 +3,8 @@ const Articulo = require('../models/articulo');
 const articuloService = require('../services/articulo.service');
 const Ticket= require('../models/ticket');
 const mongoose = require('mongoose');
+const mailService = require('./mail.service');
+const usuario = require('../models/usuario');
 
 class TicketService {
     //METODO PARA CREAR TICKET
@@ -43,6 +45,7 @@ class TicketService {
         //Crear ticket con los detalles establecidos
         const ticket = await Ticket.create({
             id_cliente: usuario._id,
+            fecha_compra: new Date(),
             detalles_ticket: detalles
         });
         return ticket;
@@ -81,6 +84,13 @@ class TicketService {
                 //Si todo salio bien se marca la session como finalizada
                 await session.commitTransaction();
                 session.endSession();
+                //Buscamos al usuario para poder mandar un correo
+                try {
+                    const usuario = await Usuario.findById(ticket.id_cliente);
+                    await mailService.sendSuccessfulPayment(usuario, ticket);
+                } catch (error) {
+                    console.error('ERROR AL ENVIAR EMAIL: ', error);
+                };
                 return ticket;
             } catch (error) {
                 //Se cancela la sesion si falla algo
@@ -159,7 +169,7 @@ class TicketService {
             throw new Error('No autorizado');
         };
         return ticket;
-    } ;
+    };
 
     //METODO PARA OBTENER UN TICKET (admin)
     async getTicket(id) {

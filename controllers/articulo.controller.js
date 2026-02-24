@@ -7,7 +7,8 @@ const articuloCtrl = {};
 //METODO PARA CREAR UN ARTICULO
 articuloCtrl.createArticulo = async (req, res) => {
     try {
-        const articulo = await articuloService.createArticulo({ ...req.body, imagen: req.file?.path });
+        const imagen = req.file ? `/uploads/articulos/${req.file.filename}` : null;
+        const articulo = await articuloService.createArticulo({ ...req.body, imagen });
         return success(res, 'Articulo creado exitosamente', articulo);
     } catch (error) {
         console.error('ERROR AL CREAR ARTICULO: ', error);
@@ -70,7 +71,8 @@ articuloCtrl.getArticuloAdmin = async (req, res) => {
 //METODO PARA ACTUALIZAR UN ARTICULO
 articuloCtrl.updateArticulo = async (req, res) => {
     try {
-        const articulo = await articuloService.updateArticulo(req.params.id, req.body, req.file?.path);
+        const imagen = req.file ? `/uploads/articulos/${req.file.filename}` : null;
+        const articulo = await articuloService.updateArticulo(req.params.id, req.body, imagen);
         return success(res, 'Articulo actualizado correctamente', articulo);
     } catch (error) {
         console.error('ERROR AL ACTUALIZAR ARTICULO: ', error);
