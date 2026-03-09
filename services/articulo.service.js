@@ -1,5 +1,6 @@
-const Articulo = require('../models/articulo');
+const { Articulo } = require('../models');
 const { subirImagen } = require('./imgbb.service');
+const { Op } = require('sequelize');
 
 class ArticuloService {
     //METODO PARA CREAR UN ARTICULO
@@ -47,25 +48,25 @@ class ArticuloService {
             estado: 'ACTIVO'
         };
         if(nombre && nombre.trim() !== '') {
-            filter.nombre = { $regex: nombre.trim(), $options: 'i' }
+            filter.nombre = { [Op.iLike]: `%${nombre.trim()}%` }
         };
         if(descripcion && descripcion.trim() !== '') {
-            filter.descripcion = { $regex: descripcion.trim(), $options: 'i' }
+            filter.descripcion = { [Op.iLike]: `%${descripcion.trim()}%` }
         };
         //Para traer precios mayor que y/o menor que
         if((precioMin !== undefined && precioMin !== '') || (precioMax !== undefined && precioMax !== '')) {
             filter.precio = {};
             if(precioMin !== undefined && precioMin !== '') {
-                filter.precio.$gte = Number(precioMin);
+                filter.precio[Op.gte] = Number(precioMin);
             };
             if(precioMax !== undefined && precioMax !== '') {
-                filter.precio.$lte = Number(precioMax);
+                filter.precio[Op.lte] = Number(precioMax);
             };
         };
         //Establecer el salto
         const skip = (page - 1) * limit;
         //Si no llega forma de ordenacion, se devuelve lo mas nuevo primero
-        let sort = { createdAt: -1 };   
+        let sort = [['createdAt', 'DESC']];   
         //Cuando si llega se asigna esa forma
         if(sortBy) {
             const orderValid = order === 'asc' || order === 'desc';
@@ -73,27 +74,31 @@ class ArticuloService {
                 //Se ordena por mayor precio o menor precio
                 case 'precio':
                     if(orderValid) {
-                        sort = { precio: order === 'asc' ? 1 : -1 }
+                        sort = [['precio', order.toUpperCase()]];
                     } else {
                         throw new Error('Ingrese un orden de precio valido');
                     };
                     break;
                 //Se ordena por nombre (A-z)
                 case 'nombre':
-                    sort = { nombre: 1 };
+                    sort = [['nombre', 'ASC']];
                     break;
                 //Si no es un caso valido, ordena por defecto desde el mas nuevo
-                default: sort = { createdAt: -1 };
+                default: sort = [['createdAd', 'DESC']];
             };
         };
         //Se establece todo lo definido
         const [ articulos, total ] = await Promise.all([
-            Articulo.find(filter)
-            .select('-estado -total_vendido -createdAt -updatedAt')
-            .sort(sort)
-            .skip(skip)
-            .limit(limit),
-            Articulo.countDocuments(filter)
+            Articulo.findAll({
+                where: filter,
+                attributes: { exclude: ['estado', 'total_vendido', 'createdAt', 'updatedAt'] },
+                order: sort,
+                skip: skip,
+                limit: limit
+            }),
+            Articulo.count({
+                where: filter
+            })
         ]);
         return {
             articulos,
@@ -330,7 +335,7 @@ class ArticuloService {
 
     //METODO PARA TRAER TOP 10 ARTICULOS MAS VENDIDOS
     async top10Articulos() {
-        const destacados = await Articulo.find({ estado: 'ACTIVO' }).select('-estado -total_vendido -createdAt -updatedAt').sort({ total_vendido: -1 }).limit(10);
+        const destacados = await Articulo.findAll({ where: { estado: 'ACTIVO' }, attributes: { exclude: ['estado', 'total_vendido', 'createdAt', 'updatedAt'] }, order: [['total_vendido', 'DESC']], limit: 10 });
         return destacados;
     };
 
