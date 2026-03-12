@@ -1,8 +1,6 @@
-const Usuario = require('../models/usuario');
-const Articulo = require('../models/articulo');
+const { Usuario, Articulo, Ticket, DetalleTicket } = require('../models');
 const articuloService = require('../services/articulo.service');
-const Ticket= require('../models/ticket');
-const mongoose = require('mongoose');
+const sequelize = require('../database');
 //const mailService = require('./mail.service');
 
 class TicketService {
@@ -12,7 +10,7 @@ class TicketService {
         if(!id) {
             throw new Error('Debe ingresar un ID');
         };
-        const usuario = await Usuario.findById(id);
+        const usuario = await Usuario.findByPk(id);
         if(!usuario) {
             throw new Error('No se encontro un usuario con ese ID ');
         };
@@ -22,31 +20,41 @@ class TicketService {
         };
         //Cada item del carrito se agrega a detalles
         const detalles = [];
+        let total = 0;
         for(const art of carrito) {
             //El carrito solo tendra id y cantidad para cada item
             if(!art.id || !art.cantidad || art.cantidad < 1) {
                 throw new Error('Item del carrito invalido');
             };
-            const articulo = await Articulo.findById(art.id);
+            const articulo = await Articulo.findByPk(art.id);
             if(!articulo) {
                 throw new Error('No se encontro articulo con el ID: '+art.id);
             };
             if(art.cantidad > articulo.stock) {
                 throw new Error('Stock insuficiente de: '+articulo.nombre);
             };
+            const subtotal = articulo.precio * art.cantidad;
+            total = total + subtotal;
             detalles.push({
-                id_articulo: articulo._id,
+                id_articulo: articulo.id,
                 nombre_articulo: articulo.nombre,
                 precio_unitario: articulo.precio,
-                cantidad: art.cantidad
+                cantidad: art.cantidad,
+                subtotal: subtotal
             });
         };
         //Crear ticket con los detalles establecidos
         const ticket = await Ticket.create({
-            id_cliente: usuario._id,
+            id_cliente: usuario.id,
             fecha_compra: new Date(),
-            detalles_ticket: detalles
+            total: total
         });
+        for(const detalle of detalles) {
+            await DetalleTicket.create({
+                id_ticket: ticket.id,
+                ...detalle
+            });
+        };
         return ticket;
     };
 
@@ -54,15 +62,14 @@ class TicketService {
     async pagarTicket(idTicket, maxRetries = 3) {
         let intentos = 0;
         while(intentos < maxRetries) {
-            //Se inicia una sesion se mongoose, si falla algo se revierte todo
-            const session = await mongoose.startSession();
-            session.startTransaction();
+            //Se inicia una transaccion, si falla algo se revierte todo
+            const transaction = await sequelize.transaction();
             try {
                 //Verificar ID y ticket
                 if(!idTicket) {
                     throw new Error('ID invalido');
                 };
-                const ticket = await Ticket.findById(idTicket).session(session);
+                const ticket = await Ticket.findByPk(idTicket, { transaction: transaction });
                 if(!ticket) {
                     throw new Error('No se encontro un ticket con ese ID');
                 };
@@ -70,19 +77,19 @@ class TicketService {
                 if(ticket.estado !== 'PENDIENTE') {
                     throw new Error('El ticket ya fue pagado o esta cancelado');
                 };
+                const detalles = await DetalleTicket.findAll({ where: { id_ticket: idTicket }, transaction: transaction });
                 //Se verifica que el ticket tenga detalles
-                if(!ticket.detalles_ticket || ticket.detalles_ticket.length === 0) {
+                if(!detalles || detalles.length === 0) {
                     throw new Error('El ticket no tiene detalles');
                 };
-                for(const detalle of ticket.detalles_ticket) {
-                    await articuloService.actualizarStockYtotal(detalle.id_articulo, detalle.cantidad, session);
+                for(const detalle of detalles) {
+                    await articuloService.actualizarStockYtotal(detalle.id_articulo, detalle.cantidad, transaction);
                 };
                 ticket.estado = 'PAGADO';
                 ticket.fecha_compra = new Date();
-                await ticket.save({ session });
-                //Si todo salio bien se marca la session como finalizada
-                await session.commitTransaction();
-                session.endSession();
+                await ticket.save({ transaction });
+                //Si todo salio bien se hace commit a la transaccion
+                await transaction.commit();
                 //Buscamos al usuario para poder mandar un correo
                 /*
                 try {
@@ -95,10 +102,9 @@ class TicketService {
                 return ticket;
             } catch (error) {
                 //Se cancela la sesion si falla algo
-                await session.abortTransaction();
-                session.endSession();
+                await transaction.rollback();
                 //Reintentar la operacion si fallo por concurrencia con otro pago
-                if(error.code === 112 || error.message.includes('WriteConflict')) {
+                if(error.message.includes('deadlock') || error.message.includes('could not serialize')) {
                     intentos++;
                     continue;
                 };
@@ -114,7 +120,7 @@ class TicketService {
         if(!idTicket) {
             throw new Error('ID de ticket invalido');
         };
-        const ticket = await Ticket.findById(idTicket);
+        const ticket = await Ticket.findByPk(idTicket);
         if(!ticket) {
             throw new Error('Ticket no encontrado');
         };
@@ -137,7 +143,7 @@ class TicketService {
             throw new Error('Usuario invalido');
         };
         //Recupera un ticket sin los campos de cuando se creo ni actualizo
-        const tickets = await Ticket.find({ id_cliente: id }).select('-createdAt -updatedAt').sort({ createdAt: -1 });
+        const tickets = await Ticket.findAll({ where: { id_cliente: id }, attributes: { exclude: ['createdAt', 'updatedAt'] }, order: [['createdAt', 'DESC']] });
         return tickets;
     };
 
@@ -148,7 +154,7 @@ class TicketService {
         if(id) {
             filter.id_cliente = id;
         };
-        const tickets = await Ticket.find(filter).sort({ createdAt: -1 });
+        const tickets = await Ticket.findAll({ where: filter, order: [['createdAt', 'DESC']] });
         return tickets;
     };
 
@@ -161,7 +167,7 @@ class TicketService {
         if(!idTicket) {
             throw new Error('Ingrese el ID del ticket a buscar');
         };
-        const ticket = await Ticket.findById(idTicket);
+        const ticket = await Ticket.findByPk(idTicket);
         if(!ticket) {
             throw new Error('Ticket no encontrado');
         };
@@ -178,7 +184,7 @@ class TicketService {
         if(!id) {
             throw new Error('ID invalido');
         };
-        const ticket = await Ticket.findById(id);
+        const ticket = await Ticket.findByPk(id);
         if(!ticket) {
             throw new Error('No se encontro el ticket');
         };
