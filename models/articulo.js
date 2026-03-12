@@ -1,20 +1,14 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../database');
 
-const { Schema } = mongoose;
-const estados = ['ACTIVO', 'INACTIVO'];
+const Articulo = sequelize.define('Articulo', {
+    nombre: { type: DataTypes.STRING(40), allowNull: false, validate: { len: [3, 40] } },
+    descripcion: { type: DataTypes.STRING(200), allowNull: false, validate: { len: [10, 200] } },
+    imagen: { type: DataTypes.STRING, allowNull: false },
+    precio: { type: DataTypes.DECIMAL(10,2), allowNull: false, validate: { min: 0 } },
+    stock: { type: DataTypes.INTEGER, allowNull: false, validate: { min: 0 } },
+    total_vendido: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    estado: { type: DataTypes.ENUM('ACTIVO', 'INACTIVO'), allowNull: false, defaultValue: 'ACTIVO' }
+}, { tableName: 'articulos', timestamps: true });
 
-const ArticuloSchema = new Schema({
-    nombre: { type: String, required: true, minlength: 3, maxlength: 40},
-    descripcion: { type: String, required: true, minlength: 10, maxlength: 200},
-    imagen: { type: String, required: true },
-    precio: { type: Number, required: true, min: 0 },
-    stock: { type: Number, required: true, min: 0 },
-    total_vendido: { type: Number, default: 0 },
-    estado: {
-        type: String,
-        enum: estados,
-        default: 'ACTIVO'
-    }
-}, { timestamps: true });
-
-module.exports = mongoose.models.Articulo || mongoose.model('Articulo', ArticuloSchema);
+module.exports = Articulo;

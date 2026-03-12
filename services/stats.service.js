@@ -1,22 +1,26 @@
-const Usuario = require('../models/usuario');
-const Ticket = require('../models/ticket');
+const { Usuario, Ticket, DetalleTicket } = require('../models');
 
 class StatsService {
     //METODO PARA OBTENER ESTADISTICAS
     async getStats() {
-        //Obtener cantidades de usuarios y tickets pagados
-        const usuarios = await Usuario.countDocuments();
-        const tickets = await Ticket.countDocuments({ estado: 'PAGADO' });
-        //Obtener cantidad total de articulos en tickets pagados
-        const articulosVendidos = await Ticket.aggregate([
-            { $match: { estado: 'PAGADO' } },
-            { $unwind: '$detalles_ticket' },
-            { $group: { _id:null, total: { $sum: '$detalles_ticket.cantidad' } } }
+        //Obtener cantidades de usuarios, tickets pagados, y articulos vendidos
+        const [usuarios, tickets, vendidos] = await Promise.all([
+            Usuario.count(),
+            Ticket.count({
+                where: { estado: 'PAGADO' }
+            }),
+            DetalleTicket.sum('cantidad', {
+                include: [{
+                    model: Ticket,
+                    where: { estado: 'PAGADO' },
+                    attributes: []
+                }]
+            })
         ]);
         return {
             usuarios,
             tickets,
-            vendidos: articulosVendidos[0]?.total || 0
+            vendidos: vendidos || 0
         };
     };
 
